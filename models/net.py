@@ -153,3 +153,11 @@ class Decoder(nn.Module):
         fake_image = self.decoder(adain_feat)
 
         return fake_image
+
+# 思路
+
+# 1. 准备256，512，800三个文件夹数据集
+#   每个文件夹都对应 train_A 和 train_B
+# 2. 对三个文件夹进行分别训练，用state_dict()存储权重
+# 3. test时怎么用参数控制？
+#

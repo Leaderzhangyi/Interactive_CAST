@@ -83,7 +83,7 @@ class CASTModel(BaseModel):
         vgg = net.vgg
         vgg.load_state_dict(torch.load('models/vgg_normalised.pth'))
         vgg = nn.Sequential(*list(vgg.children())[:31]) 
-        self.netAE = net.ADAIN_Encoder(vgg, self.gpu_ids) # 变分自编码器？
+        self.netAE = net.ADAIN_Encoder(vgg, self.gpu_ids) # Adain编码
         self.netDec_A = net.Decoder(self.gpu_ids)
         self.netDec_B = net.Decoder(self.gpu_ids)  
         init_net(self.netAE, 'normal', 0.02, self.gpu_ids)  
