@@ -68,6 +68,14 @@ class ADAIN_Encoder(nn.Module):
         self.enc_4 = nn.Sequential(*enc_layers[18:31])  # relu3_1 -> relu4_1 512
         
         self.mse_loss = nn.MSELoss()
+        self.texture = nn.Sequential(
+            nn.Conv2d(in_channels = 512,out_channels=512,kernel_size=3,padding=1,stride=1),
+            nn.LeakyReLU(),
+            nn.Conv2d(in_channels = 512, out_channels=512, kernel_size=3,padding=1,stride=1),
+            nn.LeakyReLU(),
+            # nn.Upsample(scale_factor=2, mode='nearest')
+            
+        )
 
         # fix the encoder
         for name in ['enc_1', 'enc_2', 'enc_3', 'enc_4']:
@@ -102,16 +110,21 @@ class ADAIN_Encoder(nn.Module):
             size)) / content_std.expand(size)
         return normalized_feat * style_std.expand(size) + style_mean.expand(size)
 
-    def forward(self, content, style, encoded_only = False):
-        print("输入内容图大小:",content,content.size())
-        print("输入内容图大小:",style,style.size())
+    def forward(self, content, style, encoded_only = False,texture = True):
+        # print("输入内容图大小:",content,content.size())
+        # print("输入内容图大小:",style,style.size())
         style_feats = self.encode_with_intermediate(style)
         content_feats = self.encode_with_intermediate(content)
         if encoded_only:
             return content_feats[-1], style_feats[-1]
+        elif texture:
+            adain_feat = self.adain(content_feats[-1], style_feats[-1])
+            res = self.texture(adain_feat)
+            return res 
         else:
             adain_feat = self.adain(content_feats[-1], style_feats[-1])
-            return  adain_feat
+            return adain_feat
+
 
 class Decoder(nn.Module):
     def __init__(self, gpu_ids=[]):

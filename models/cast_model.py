@@ -30,7 +30,7 @@ class CASTModel(BaseModel):
         
         parser.add_argument('--lambda_CYC', type=float, default=4.0, help='weight for l1 reconstructe loss:||Ic - G(G(Ic, Is),Ic)||')
         
-        parser.add_argument('--nce_layers', type=str, default='0,1,2,3', help='compute NCE loss on which layers')
+        parser.add_argument('--nce_layers', type=str, default='0,1,2,3,4,5', help='compute NCE loss on which layers')
 
         parser.set_defaults(pool_size=0)  # no image pooling
 

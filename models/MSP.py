@@ -59,7 +59,7 @@ class StyleExtractor(nn.Module):
         for i in range(6):
             func = getattr(self, 'enc_{:d}'.format(i + 1))
             results.append(func(results[-1]))
-        return results[1:]
+        return results[1:]  # 除了输入x，只保存relu过后的数据
 
     def forward(self, input, index):
         """Standard forward."""
