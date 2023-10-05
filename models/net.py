@@ -110,7 +110,7 @@ class ADAIN_Encoder(nn.Module):
             size)) / content_std.expand(size)
         return normalized_feat * style_std.expand(size) + style_mean.expand(size)
 
-    def forward(self, content, style, encoded_only = False,texture = True):
+    def forward(self, content, style, encoded_only = False,texture = False):
         # print("输入内容图大小:",content,content.size())
         # print("输入内容图大小:",style,style.size())
         style_feats = self.encode_with_intermediate(style)

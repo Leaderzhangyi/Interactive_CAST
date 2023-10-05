@@ -5,8 +5,9 @@ __pycache__/
 
 # C extensions
 *.so
-
+datasets
 nohup.out
+results
 
 # Distribution / packaging
 .Python
