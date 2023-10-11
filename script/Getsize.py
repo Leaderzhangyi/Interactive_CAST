@@ -1,22 +1,24 @@
 import torch.nn as nn
 import torch
+from torchsummary import summary
+
 
 vgg = nn.Sequential(
-    nn.Conv2d(3, 3, (1, 1)), # [1, 3, 256, 256]
+    nn.Conv2d(3, 3, (1, 1)),
     nn.ReflectionPad2d((1, 1, 1, 1)),
     nn.Conv2d(3, 64, (3, 3)),
     nn.ReLU(),  # relu1-1
     nn.ReflectionPad2d((1, 1, 1, 1)),
     nn.Conv2d(64, 64, (3, 3)),
     nn.ReLU(),  # relu1-2
-    nn.MaxPool2d((2, 2), (2, 2), (0, 0), ceil_mode=True), # [1, 64, 128, 128] 
+    nn.MaxPool2d((2, 2), (2, 2), (0, 0), ceil_mode=True),
     nn.ReflectionPad2d((1, 1, 1, 1)),
     nn.Conv2d(64, 128, (3, 3)),
     nn.ReLU(),  # relu2-1
     nn.ReflectionPad2d((1, 1, 1, 1)),
     nn.Conv2d(128, 128, (3, 3)),
     nn.ReLU(),  # relu2-2
-    nn.MaxPool2d((2, 2), (2, 2), (0, 0), ceil_mode=True), #  [1, 128, 64, 64] 
+    nn.MaxPool2d((2, 2), (2, 2), (0, 0), ceil_mode=True),
     nn.ReflectionPad2d((1, 1, 1, 1)),
     nn.Conv2d(128, 256, (3, 3)),
     nn.ReLU(),  # relu3-1
@@ -29,13 +31,13 @@ vgg = nn.Sequential(
     nn.ReflectionPad2d((1, 1, 1, 1)),
     nn.Conv2d(256, 256, (3, 3)),
     nn.ReLU(),  # relu3-4
-    nn.MaxPool2d((2, 2), (2, 2), (0, 0), ceil_mode=True), #  [1, 256, 32, 32] 
+    nn.MaxPool2d((2, 2), (2, 2), (0, 0), ceil_mode=True),
     nn.ReflectionPad2d((1, 1, 1, 1)),
     nn.Conv2d(256, 512, (3, 3)),
-    nn.ReLU(),  # relu4-1, this is the last layer used  [1, 512, 32, 32] 
+    nn.ReLU(),  # relu4-1, this is the last layer used
     nn.ReflectionPad2d((1, 1, 1, 1)),
     nn.Conv2d(512, 512, (3, 3)),
-    nn.ReLU(),  # relu4-2 
+    nn.ReLU(),  # relu4-2
     nn.ReflectionPad2d((1, 1, 1, 1)),
     nn.Conv2d(512, 512, (3, 3)),
     nn.ReLU(),  # relu4-3
@@ -65,11 +67,9 @@ class ADAIN_Encoder(nn.Module):
         self.enc_1 = nn.Sequential(*enc_layers[:4])  # input -> relu1_1 64
         self.enc_2 = nn.Sequential(*enc_layers[4:11])  # relu1_1 -> relu2_1 128
         self.enc_3 = nn.Sequential(*enc_layers[11:18])  # relu2_1 -> relu3_1 256
-        self.enc_4 = nn.Sequential(*enc_layers[18:31])  # relu3_1 -> relu4_1 512 [batch_size,3,32,32]
-        # 以上是3 * 256 * 256 -> 512 * 32 * 32
+        self.enc_4 = nn.Sequential(*enc_layers[18:31])  # relu3_1 -> relu4_1 512
+        
         self.mse_loss = nn.MSELoss()
-
-        # 经过笔触模块 
         self.texture = nn.Sequential(
             nn.Conv2d(in_channels = 512,out_channels=512,kernel_size=3,padding=1,stride=1),
             nn.LeakyReLU(),
@@ -77,9 +77,9 @@ class ADAIN_Encoder(nn.Module):
             nn.LeakyReLU(),
             nn.ReflectionPad2d((1, 1, 1, 1)),
             nn.Conv2d(512, 256, (3, 3)),
-            nn.ReLU(), #  [1, 256, 32, 32] 
-            nn.Upsample(scale_factor=2, mode='nearest') # [1, 256, 64, 64] 
-        ) 
+            nn.ReLU(), # 256
+            nn.Upsample(scale_factor=2, mode='nearest')
+        )
 
         # fix the encoder
         for name in ['enc_1', 'enc_2', 'enc_3', 'enc_4']:
@@ -114,28 +114,19 @@ class ADAIN_Encoder(nn.Module):
             size)) / content_std.expand(size)
         return normalized_feat * style_std.expand(size) + style_mean.expand(size)
 
-    def forward(self, content, style, encoded_only = False,texture = False):
+    def forward(self, content, style, encoded_only = False,texture = True):
         # print("输入内容图大小:",content,content.size())
         # print("输入内容图大小:",style,style.size())
-
-        # 通过enc_4 得到 512 * 32 * 32
-        style_feats = self.encode_with_intermediate(style) 
+        style_feats = self.encode_with_intermediate(style)
         content_feats = self.encode_with_intermediate(content)
-
-        # 通过texture unit 得到 512 * 32 * 32
-        style_feats = self.texture(style_feats[-1])
-        content_feats = self.texture(content_feats[-1])
-
-
         if encoded_only:
             return content_feats[-1], style_feats[-1]
-        # elif texture:
-        #     adain_feat = self.adain(content_feats[-1], style_feats[-1])
-        #     res = self.texture(adain_feat)
-        #     return res 
+        elif texture:
+            adain_feat = self.adain(content_feats[-1], style_feats[-1])
+            res = self.texture(adain_feat)
+            return res 
         else:
-            adain_feat = self.adain(content_feats, style_feats)
-            # print(adain_feat.size())
+            adain_feat = self.adain(content_feats[-1], style_feats[-1])
             return adain_feat
 
 
@@ -180,10 +171,21 @@ class Decoder(nn.Module):
 
         return fake_image
 
-# 思路
 
-# 1. 准备256，512，800三个文件夹数据集
-#   每个文件夹都对应 train_A 和 train_B
-# 2. 对三个文件夹进行分别训练，用state_dict()存储权重
-# 3. test时怎么用参数控制？
-#
+fake_input = (512,256,256)
+def print_decoder_layersize(decoder,input_size):
+    _x = torch.randn(1,*input_size)
+    decoder = Decoder()
+    decoder.eval()
+    decoder.apply(lambda x:x.train(False))
+    for layer in decoder.children():
+        x = layer(_x)
+        print(f"Layer: {layer.__class__.__name__}, Output Size: {x.size()}")
+
+if __name__ == "__main__":
+    encoder = ADAIN_Encoder(vgg)
+    decoder = Decoder()
+    summary(model = encoder,input_size = [(3,256,256),(3,256,256)],batch_size = 1,device = "cpu")
+    print("*" * 50)
+    summary(model = decoder,input_size = (256, 64, 64),batch_size = 1,device = "cpu")
+
