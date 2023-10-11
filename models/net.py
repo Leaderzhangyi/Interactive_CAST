@@ -65,7 +65,7 @@ class ADAIN_Encoder(nn.Module):
         self.enc_1 = nn.Sequential(*enc_layers[:4])  # input -> relu1_1 64
         self.enc_2 = nn.Sequential(*enc_layers[4:11])  # relu1_1 -> relu2_1 128
         self.enc_3 = nn.Sequential(*enc_layers[11:18])  # relu2_1 -> relu3_1 256
-        self.enc_4 = nn.Sequential(*enc_layers[18:31])  # relu3_1 -> relu4_1 512
+        self.enc_4 = nn.Sequential(*enc_layers[18:31])  # relu3_1 -> relu4_1 512 [batch_size,3,32,32]
         
         self.mse_loss = nn.MSELoss()
         self.texture = nn.Sequential(
@@ -73,8 +73,10 @@ class ADAIN_Encoder(nn.Module):
             nn.LeakyReLU(),
             nn.Conv2d(in_channels = 512, out_channels=512, kernel_size=3,padding=1,stride=1),
             nn.LeakyReLU(),
-            # nn.Upsample(scale_factor=2, mode='nearest')
-            
+            nn.ReflectionPad2d((1, 1, 1, 1)),
+            nn.Conv2d(512, 256, (3, 3)),
+            nn.ReLU(), # 256
+            nn.Upsample(scale_factor=2, mode='nearest')
         )
 
         # fix the encoder
@@ -113,16 +115,25 @@ class ADAIN_Encoder(nn.Module):
     def forward(self, content, style, encoded_only = False,texture = False):
         # print("输入内容图大小:",content,content.size())
         # print("输入内容图大小:",style,style.size())
-        style_feats = self.encode_with_intermediate(style)
+        style_feats = self.encode_with_intermediate(style) 
         content_feats = self.encode_with_intermediate(content)
+        # print(len(style_feats[-1]))
+        # print(style_feats[-1].size())
+
+        # print("************************")
+        style_feats = self.texture(style_feats[-1])
+        # print(style_feats.size(),len(style_feats.size()))
+        content_feats = self.texture(content_feats[-1])
+
+
         if encoded_only:
             return content_feats[-1], style_feats[-1]
-        elif texture:
-            adain_feat = self.adain(content_feats[-1], style_feats[-1])
-            res = self.texture(adain_feat)
-            return res 
+        # elif texture:
+        #     adain_feat = self.adain(content_feats[-1], style_feats[-1])
+        #     res = self.texture(adain_feat)
+        #     return res 
         else:
-            adain_feat = self.adain(content_feats[-1], style_feats[-1])
+            adain_feat = self.adain(content_feats, style_feats)
             return adain_feat
 
 
@@ -130,10 +141,10 @@ class Decoder(nn.Module):
     def __init__(self, gpu_ids=[]):
         super(Decoder, self).__init__()
         decoder = [
-            nn.ReflectionPad2d((1, 1, 1, 1)),
-            nn.Conv2d(512, 256, (3, 3)),
-            nn.ReLU(), # 256
-            nn.Upsample(scale_factor=2, mode='nearest'),
+            # nn.ReflectionPad2d((1, 1, 1, 1)),
+            # nn.Conv2d(512, 256, (3, 3)),
+            # nn.ReLU(), # 256
+            # nn.Upsample(scale_factor=2, mode='nearest'),
             nn.ReflectionPad2d((1, 1, 1, 1)),
             nn.Conv2d(256, 256, (3, 3)),
             nn.ReLU(),
