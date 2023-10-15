@@ -122,7 +122,8 @@ class ADAIN_Encoder(nn.Module):
         style_feats = self.encode_with_intermediate(style) 
         content_feats = self.encode_with_intermediate(content)
 
-        # 通过texture unit 得到 512 * 32 * 32
+        # 通过texture unit 得到  256 * 64 * 64
+        # 一旦修改了层数 loss就有问题 ？ 原因？
         style_feats = self.texture(style_feats[-1])
         content_feats = self.texture(content_feats[-1])
 

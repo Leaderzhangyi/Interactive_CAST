@@ -241,18 +241,23 @@ class CASTModel(BaseModel):
         """Calculate GAN loss for discriminator D"""
         if self.opt.lambda_GAN_D_B > 0.0:
             fake_B = self.fake_pool.query(self.fake_B)
+            print(f"fake_B = {fake_B}")
             self.loss_D_B = self.backward_D_basic(self.netD_B, self.real_A, self.real_B, fake_B) * self.opt.lambda_GAN_D_B
+
+        
         else:
             self.loss_D_B = 0
 
         if self.opt.lambda_GAN_D_A > 0.0:
             fake_A = self.fake_pool.query(self.fake_A)
+            print(f"fake_A = {fake_A}")
             self.loss_D_A = self.backward_D_basic(self.netD_A, self.real_B, self.real_A, fake_A) * self.opt.lambda_GAN_D_A
 
         else:
             self.loss_D_A = 0
-
+        print(f"self.loss_D_B = {self.loss_D_B}  self.loss_D_A = {self.loss_D_A}")
         self.loss_D = (self.loss_D_B + self.loss_D_A) * 0.5
+        # print(f"total loss = {self.loss_D}")
         return self.loss_D
 
     def compute_G_loss(self):
