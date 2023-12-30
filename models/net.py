@@ -28,7 +28,7 @@ vgg = nn.Sequential(
     nn.ReLU(),  # relu3-3
     nn.ReflectionPad2d((1, 1, 1, 1)),
     nn.Conv2d(256, 256, (3, 3)),
-    nn.ReLU(),  # relu3-4
+    nn.ReLU(),  # relu3-4  #  [1, 256, 64, 64] 
     nn.MaxPool2d((2, 2), (2, 2), (0, 0), ceil_mode=True), #  [1, 256, 32, 32] 
     nn.ReflectionPad2d((1, 1, 1, 1)),
     nn.Conv2d(256, 512, (3, 3)),
@@ -75,14 +75,18 @@ class ADAIN_Encoder(nn.Module):
             nn.LeakyReLU(),
             nn.Conv2d(in_channels = 512, out_channels=512, kernel_size=3,padding=1,stride=1),
             nn.LeakyReLU(),
-            nn.ReflectionPad2d((1, 1, 1, 1)),
-            nn.Conv2d(512, 256, (3, 3)),
-            nn.ReLU(), #  [1, 256, 32, 32] 
-            nn.Upsample(scale_factor=2, mode='nearest') # [1, 256, 64, 64] 
+            # nn.ReflectionPad2d((1, 1, 1, 1)),
+            # nn.Conv2d(512, 256, (3, 3)),
+            # nn.ReLU(), #  [1, 256, 32, 32] 
+            # nn.Upsample(scale_factor=2, mode='nearest') # [1, 256, 64, 64] 
         ) 
+        self.test = nn.Sequential(
+            nn.Conv2d(in_channels = 512,out_channels=512,kernel_size=3,padding=1,stride=1),
+            nn.LeakyReLU()
+        )
 
         # fix the encoder
-        for name in ['enc_1', 'enc_2', 'enc_3', 'enc_4']:
+        for name in ['enc_1', 'enc_2', 'enc_3', 'enc_4','texture','test']:
             for param in getattr(self, name).parameters():
                 param.requires_grad = False
 
@@ -123,9 +127,10 @@ class ADAIN_Encoder(nn.Module):
         content_feats = self.encode_with_intermediate(content)
 
         # 通过texture unit 得到  256 * 64 * 64
-        # 一旦修改了层数 loss就有问题 ？ 原因？
-        style_feats = self.texture(style_feats[-1])
-        content_feats = self.texture(content_feats[-1])
+        # # 一旦修改了层数 loss就有问题 ？ 原因？
+        
+        # style_feats = self.test(style_feats[-1])
+        # content_feats = self.test(content_feats[-1])
 
 
         if encoded_only:
@@ -135,19 +140,22 @@ class ADAIN_Encoder(nn.Module):
         #     res = self.texture(adain_feat)
         #     return res 
         else:
-            adain_feat = self.adain(content_feats, style_feats)
-            # print(adain_feat.size())
-            return adain_feat
+            adain_feat = self.adain(content_feats[-1], style_feats[-1]) # origin
+            #adain_feat = self.adain(content_feats, style_feats)
+            #print("adain_size = ",adain_feat.size())
+            
+            return self.test(adain_feat)
+            #return adain_feat
 
 
 class Decoder(nn.Module):
     def __init__(self, gpu_ids=[]):
         super(Decoder, self).__init__()
         decoder = [
-            # nn.ReflectionPad2d((1, 1, 1, 1)),
-            # nn.Conv2d(512, 256, (3, 3)),
-            # nn.ReLU(), # 256
-            # nn.Upsample(scale_factor=2, mode='nearest'),
+            nn.ReflectionPad2d((1, 1, 1, 1)),
+            nn.Conv2d(512, 256, (3, 3)),
+            nn.ReLU(), # 256
+            nn.Upsample(scale_factor=2, mode='nearest'),
             nn.ReflectionPad2d((1, 1, 1, 1)),
             nn.Conv2d(256, 256, (3, 3)),
             nn.ReLU(),
