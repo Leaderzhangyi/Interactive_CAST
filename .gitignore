@@ -5,9 +5,11 @@ __pycache__/
 
 # C extensions
 *.so
-datasets
-nohup.out
+
 results
+nohup.out
+datasets
+
 
 # Distribution / packaging
 .Python
