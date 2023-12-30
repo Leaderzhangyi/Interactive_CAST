@@ -22,16 +22,15 @@ if __name__ == '__main__':
     times = []
     for epoch in range(opt.epoch_count, opt.n_epochs + opt.n_epochs_decay + 1):    # outer loop for different epochs; we save the model by <epoch_count>, <epoch_count>+<save_latest_freq>
         epoch_start_time = time.time()  # timer for entire epoch
-        iter_data_time = time.time()    # timer for data loading per iteration
+        iter_data_zysb_time = time.time()    # timer for data loading per iteration
         epoch_iter = 0                  # the number of training iterations in current epoch, reset to 0 every epoch
         visualizer.reset()              # reset the visualizer: make sure it saves the results to HTML at least once every epoch
 
         dataset.set_epoch(epoch)
-        for i, data in enumerate(dataset):  # inner loop within one epoch
+        for i, data in enumerate(dataset):  # inner loop within on6e epoch
             iter_start_time = time.time()  # timer for computation per iteration
             if total_iters % opt.print_freq == 0:
                 t_data = iter_start_time - iter_data_time
-
             batch_size = data["A"].size(0)
             total_iters += batch_size
             epoch_iter += batch_size
